@@ -20,6 +20,8 @@ func Handle(command string, args []interface{}) (string, error) {
 		return handleConfig(args)
 	case "SAVE":
 		return handleSave()
+	case "KEYS":
+		return handleKeys()
 	default:
 		return "", fmt.Errorf("unknown command: %s", command)
 	}
@@ -129,4 +131,13 @@ func handleSave() (string, error) {
 	}
 	addCheckSumToRdbFile(rdbFile)
 	return encodeSimpleString("OK"), nil
+}
+
+func handleKeys() (string, error) {
+	var keysList []interface{}
+	for _, item := range kvStore.Items() {
+		keysList = append(keysList, item.Key)
+	}
+	encodedKeysList, _ := encodeArray(keysList)
+	return encodedKeysList, nil
 }

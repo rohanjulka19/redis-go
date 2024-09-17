@@ -26,6 +26,7 @@ func TestMain(t *testing.T) {
 	t.Run("SET and GET value with expiry", testSetAndGetValueWithExpiry)
 	t.Run("Save RDB File", testSaveCommand)
 	t.Run("Test CONFIG Get Command", testConfigGet)
+	t.Run("Test KEYS Command", testKeysCommand)
 }
 
 func testEchoCommand(t *testing.T) {
@@ -73,6 +74,10 @@ func testConfigGet(t *testing.T) {
 
 	internal.Config["dir"] = tempDir
 	internal.Config["dbfilename"] = tempDbFileName
+}
+
+func testKeysCommand(t *testing.T) {
+	runCommandTest(t, "*2\r\n$4\r\nKEYS\r\n$1\r\n*\r\n", "*2\r\n$3\r\nfoo\r\n$3\r\ncow\r\n", 22, conn)
 }
 
 func runCommandTest(t *testing.T, command string, expectedResp string, respByteCount int, conn net.Conn) {
