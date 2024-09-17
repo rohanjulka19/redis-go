@@ -24,7 +24,8 @@ func TestMain(t *testing.T) {
 	t.Run("GET Command Test", testGetCommand)
 	t.Run("GET Non Existent Value", testGetValueDoesNotExist)
 	t.Run("SET and GET value with expiry", testSetAndGetValueWithExpiry)
-	t.Run("CONFIG GET command test", testSaveCommand)
+	t.Run("Save RDB File", testSaveCommand)
+	t.Run("Test CONFIG Get Command", testConfigGet)
 }
 
 func testEchoCommand(t *testing.T) {
@@ -61,10 +62,18 @@ func testRDBLoad(t *testing.T) {
 
 }
 
-// func TestConfigGet(t *testing.T) {
-// 	runCommandTest(t, "*4\r\n$6\r\nCONFIG\r\n$3\r\nGET\r\n$3\r\ndir\r\n$10\r\ndbfilename\r\n",
-// 		"*4\r\n$3\r\ndir\r\n$8\r\n/tmp/dir\r\n$10\r\ndbfilename\r\n$8\r\ndump.rdb\r\n", 58, conn)
-// }
+func testConfigGet(t *testing.T) {
+	tempDir := internal.Config["dir"]
+	tempDbFileName := internal.Config["dbfilename"]
+	internal.Config["dir"] = "/tmp/dir"
+	internal.Config["dbfilename"] = "dump.rdb"
+
+	runCommandTest(t, "*4\r\n$6\r\nCONFIG\r\n$3\r\nGET\r\n$3\r\ndir\r\n$10\r\ndbfilename\r\n",
+		"*4\r\n$3\r\ndir\r\n$8\r\n/tmp/dir\r\n$10\r\ndbfilename\r\n$8\r\ndump.rdb\r\n", 58, conn)
+
+	internal.Config["dir"] = tempDir
+	internal.Config["dbfilename"] = tempDbFileName
+}
 
 func runCommandTest(t *testing.T, command string, expectedResp string, respByteCount int, conn net.Conn) {
 	_, err := conn.Write([]byte(command))
