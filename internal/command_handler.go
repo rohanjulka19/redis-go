@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	config "myredis/config"
 )
 
 func Handle(command string, args []interface{}) (string, error) {
@@ -22,6 +24,12 @@ func Handle(command string, args []interface{}) (string, error) {
 		return handleSave()
 	case "KEYS":
 		return handleKeys()
+	case "INFO":
+		return handleInfo()
+	case "REPLCONF":
+		return handleReplConf(args)
+	case "PSYNC":
+		return handlePsync(args)
 	default:
 		return "", fmt.Errorf("unknown command: %s", command)
 	}
@@ -140,4 +148,23 @@ func handleKeys() (string, error) {
 	}
 	encodedKeysList, _ := encodeArray(keysList)
 	return encodedKeysList, nil
+}
+
+func handleInfo() (string, error) {
+	replicationInfo := "role:" + config.InstReplicationInfo.Role + "\n"
+	replicationInfo += "master_replid:" + config.InstReplicationInfo.MasterReplId + "\n"
+	replicationInfo += "master_repl_offset:" + fmt.Sprint(config.InstReplicationInfo.MasterReplOffset)
+	return encodeBulkString(&replicationInfo), nil
+}
+
+func handleReplConf(args []interface{}) (string, error) {
+
+	return encodeSimpleString("OK"), nil
+}
+
+func handlePsync(args []interface{}) (string, error) {
+	replicationInfo := config.InstReplicationInfo
+	resp := fmt.Sprintf("FULLRESYNC %s %d", replicationInfo.MasterReplId, replicationInfo.MasterReplOffset)
+	sendRdbToReplica()
+	return encodeSimpleString(resp), nil
 }

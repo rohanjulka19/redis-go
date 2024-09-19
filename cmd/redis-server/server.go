@@ -7,24 +7,51 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/spf13/pflag"
+
+	config "myredis/config"
 	internal "myredis/internal"
 )
 
 func main() {
-	fmt.Println("Starting Redis Server")
+	fmt.Println("Starting Redis Server...")
+
+	config.InstReplicationInfo.MasterReplId = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
+	config.InstReplicationInfo.MasterReplOffset = 0
+
+	port := pflag.String("port", "6377", "--port to set the port number")
+	replicaOf := pflag.String("replicaof", "", "--replicaof '<Master_Host> <Master_Port>' ")
+	pflag.Parse()
+
+	config.InstReplicationInfo.Role = "master"
+	config.InstanceConfig.Port = *port
+
+	if *replicaOf != "" {
+		masterDetails := strings.Split(*replicaOf, "")
+		config.InstReplicationInfo.MasterHost = masterDetails[0]
+		config.InstReplicationInfo.MasterPort = masterDetails[1]
+		config.InstReplicationInfo.Role = "slave"
+		internal.HandshakeWithMaster()
+	}
 
 	tasksChannel := make(chan func())
 	internal.SpawnWorkers(10, tasksChannel)
-	loadRdbFile()
 
-	listener, err := net.Listen("tcp", "0.0.0.0:6378")
-	defer listener.Close()
+	if config.InstReplicationInfo.Role == "master" {
+		loadRdbFile()
+	}
+
+	url := fmt.Sprintf("0.0.0.0:%s", *port)
+	listener, err := net.Listen("tcp", url)
 
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		fmt.Errorf("Failed to bind to port: %v", err)
 		os.Exit(1)
 	}
+	defer listener.Close()
+	fmt.Println("Accepting connections")
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

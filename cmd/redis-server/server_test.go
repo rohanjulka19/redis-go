@@ -17,7 +17,7 @@ func TestMain(t *testing.T) {
 	copyRdbDumpToSourceDir()
 
 	go main()
-	conn, _ = net.Dial("tcp", "localhost:6378")
+	conn, _ = net.Dial("tcp", "localhost:6377")
 	t.Run("Test RDB File Load", testRDBLoad)
 	t.Run("Echo Command Test", testEchoCommand)
 	t.Run("SET Command Test", testSetCommand)
@@ -27,6 +27,7 @@ func TestMain(t *testing.T) {
 	t.Run("Save RDB File", testSaveCommand)
 	t.Run("Test CONFIG Get Command", testConfigGet)
 	t.Run("Test KEYS Command", testKeysCommand)
+	t.Run("Test INFO command", testInfoCommand)
 }
 
 func testEchoCommand(t *testing.T) {
@@ -78,6 +79,10 @@ func testConfigGet(t *testing.T) {
 
 func testKeysCommand(t *testing.T) {
 	runCommandTest(t, "*2\r\n$4\r\nKEYS\r\n$1\r\n*\r\n", "*2\r\n$3\r\nfoo\r\n$3\r\ncow\r\n", 22, conn)
+}
+
+func testInfoCommand(t *testing.T) {
+	runCommandTest(t, "*2\r\n$4\r\nINFO\r\n$10\r\nreplication\r\n", "$87\r\nrole:master\nmaster_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb\nmaster_repl_offset:0\r\n", 94, conn)
 }
 
 func runCommandTest(t *testing.T, command string, expectedResp string, respByteCount int, conn net.Conn) {
